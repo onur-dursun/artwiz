@@ -1,0 +1,1 @@
+dotnet script main.csx load
