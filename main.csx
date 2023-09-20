@@ -5,10 +5,8 @@ using System.Runtime.CompilerServices;
 
 string imageCommandsFolder = "commands\\image";
 string videoCommandsFolder = "commands\\video";
-//string[] videoExtensions = { ".mp4", ".avi", ".mkv" };
-string[] videoExtensions = { ".mp4" };
-//string[] imageExtensions = { ".jpg", ".jpeg", ".png", ".gif" };
-string[] imageExtensions = { ".jpg" };
+string[] videoExtensions = { ".mp4", ".avi", ".mkv" };
+string[] imageExtensions = { ".jpg", ".jpeg", ".png", ".gif" };
 public static string GetScriptPath([CallerFilePath] string path = null) => path;
 public static string GetScriptFolder([CallerFilePath] string path = null) => Path.GetDirectoryName(path);
 string parentMenu = "ArtWiz";
