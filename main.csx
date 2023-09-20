@@ -7,9 +7,8 @@ string imageCommandsFolder = "commands\\image";
 string videoCommandsFolder = "commands\\video";
 string[] videoExtensions = { ".mp4", ".avi", ".mkv" };
 string[] imageExtensions = { ".jpg", ".jpeg", ".png", ".gif" };
-public static string GetScriptPath([CallerFilePath] string path = null) => path;
 public static string GetScriptFolder([CallerFilePath] string path = null) => Path.GetDirectoryName(path);
-        string menuName = "ArtWiz Master";
+string parentMenu = "ArtWiz";
 
 Main();
 
@@ -78,31 +77,41 @@ void LoadVideoCommands()
 }
 
 void LoadContextMenuItems(string[] extensions, string folder)
-{
+{   
     Console.WriteLine("Loading: " + folder);
 
+    // Get an array of custom commands from the "commands" folder
+    string[] customCommands = Directory.GetFiles(folder, "*.bat");
+
+    for (int i = 0; i < customCommands.Length; i++)
+    {
+        customCommands[i] = Path.GetFileNameWithoutExtension(customCommands[i]);
+    }
+
+    // Concatenate the custom commands separated by semicolons
+    string subcommandsValue = string.Join(";", customCommands);
+
+    // Add the subcommands under the parent menu
     foreach (string batchFilePath in Directory.GetFiles(folder, "*.bat"))
     {
-        string menuName = Path.GetFileNameWithoutExtension(batchFilePath);
-        string fileExtension = Path.GetExtension(batchFilePath).ToLower();
+        string commandName = Path.GetFileNameWithoutExtension(batchFilePath);
 
         // Check if the file extension belongs to a video or image type
         Array.ForEach(extensions, ext =>
         {
-            AddContextMenu(menuName, Path.Combine(GetScriptFolder(), batchFilePath), ext);
+            AddContextMenuParent(parentMenu, ext);
+            AddContextMenu(commandName, Path.Combine(GetScriptFolder(), batchFilePath), ext);
         });
     }
 }
 
 void UnloadImageCommands()
 {
-    string[] imageExtensions = { ".jpg", ".jpeg", ".png", ".gif" };
     UnloadContextMenuItems(imageExtensions, imageCommandsFolder);
 }
 
 void UnloadVideoCommands()
 {
-    string[] videoExtensions = { ".mp4", ".avi", ".mkv" };
     UnloadContextMenuItems(videoExtensions, videoCommandsFolder);
 }
 
@@ -110,33 +119,63 @@ void UnloadContextMenuItems(string[] extensions, string folder)
 {
     Console.WriteLine("Unloading: " + folder);
 
+    // Get an array of custom commands from the "commands" folder
+    string[] customCommands = Directory.GetFiles(folder, "*.bat");
+
+    for (int i = 0; i < customCommands.Length; i++)
+    {
+        customCommands[i] = Path.GetFileNameWithoutExtension(customCommands[i]);
+    }
+
+    // Concatenate the custom commands separated by semicolons
+    string subcommandsValue = string.Join(";", customCommands);
+
+    // Add the subcommands under the parent menu
     foreach (string batchFilePath in Directory.GetFiles(folder, "*.bat"))
     {
-        //string menuName = Path.GetFileNameWithoutExtension(batchFilePath);
-        string fileExtension = Path.GetExtension(batchFilePath).ToLower();
+        string commandName = Path.GetFileNameWithoutExtension(batchFilePath);
 
+        // Check if the file extension belongs to a video or image type
         Array.ForEach(extensions, ext =>
         {
-            RemoveContextMenu(menuName, ext);
+            RemoveContextMenu(commandName, ext);
+            RemoveContextMenuParent(parentMenu, ext);
         });
     }
 }
-
-void AddContextMenu(string menuName, string command, string fileExtension)
+void AddContextMenuParent(string parentMenu, string fileExtension)
 {
-    string registryKeyPath = $"SystemFileAssociations\\{fileExtension}\\shell\\{menuName}";
+    string registryKeyPath = $"SystemFileAssociations\\{fileExtension}\\shell\\{parentMenu}";
     using (RegistryKey key = Registry.ClassesRoot.CreateSubKey(registryKeyPath))
     {
         if (key != null)
         {
-            key.SetValue("", menuName);
-            key.CreateSubKey("command").SetValue("", "\"" + command + "\"" + "%1");
+            key.SetValue("", "");
+            key.SetValue("SubCommands", "");
         }
     }
 }
 
-void RemoveContextMenu(string menuName, string fileExtension)
+void AddContextMenu(string commandName, string command, string fileExtension)
 {
-    string registryKeyPath = $"SystemFileAssociations\\{fileExtension}\\shell\\{menuName}";
+    string registryKeyPath = $"SystemFileAssociations\\{fileExtension}\\shell\\{parentMenu}\\shell\\{commandName}";
+    using (RegistryKey key = Registry.ClassesRoot.CreateSubKey(registryKeyPath))
+    {
+        if (key != null)
+        {
+            key.SetValue("", commandName);
+            key.CreateSubKey("command").SetValue("", command + " \"%1\"");
+        }
+    }
+}
+
+void RemoveContextMenuParent(string commandName, string fileExtension)
+{
+    string registryKeyPath = $"SystemFileAssociations\\{fileExtension}\\shell\\{parentMenu}";
+    Registry.ClassesRoot.DeleteSubKeyTree(registryKeyPath, false);
+}
+void RemoveContextMenu(string commandName, string fileExtension)
+{
+    string registryKeyPath = $"SystemFileAssociations\\{fileExtension}\\shell\\{parentMenu}\\shell\\{commandName}";
     Registry.ClassesRoot.DeleteSubKeyTree(registryKeyPath, false);
 }
